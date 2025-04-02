@@ -107,7 +107,10 @@ USER $TARGET_USER
 WORKDIR /app
 
 # Create necessary directories for data, TLS, static assets, and templates
-RUN mkdir -p /app/data /app/tls /app/static/v1 /app/templates/html
+RUN mkdir -p /app/data
+RUN mkdir -p /app/tls
+RUN mkdir -p /app/static/v1
+RUN mkdir -p /app/templates/html
 
 # Copy the compiled binary from the 'build-release' stage
 COPY --from=build-release --chown=$TARGET_USER /app/out/rauthy_${TARGETARCH} ./rauthy
