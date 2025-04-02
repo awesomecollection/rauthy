@@ -47,8 +47,11 @@ jobs:
           mkdir -p /home/runner/.cargo/registry
           sudo chown -R 1001:118 /home/runner/.cargo/registry
       
-      - name: Build Builder Image
-        run: just setup
+      - name: Run setup
+        run: |
+          export TERM=xterm
+          just setup
+        shell: /usr/bin/bash -e {0}
 
       # - name: Build Builder Image
       #   run: just build-builder  # Uses values from Justfile
