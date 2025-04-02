@@ -51,10 +51,10 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update && sudo apt-get install -y just libpq-dev
-          # cargo install sqlx-cli --no-default-features --features postgres
+          cargo install sqlx-cli --no-default-features --features postgres
       
-      # - name: Ensure Docker network exists
-      #   run: docker network create rauthy-dev || true
+      - name: Ensure Docker network exists
+        run: docker network create rauthy-dev || true
 
       - name: List Docker networks (debugging step)
         run: docker network ls
@@ -87,6 +87,9 @@ jobs:
 
       # - name: Build Builder Image
       #   run: just build-builder  # Uses values from Justfile
+
+      - name: Build Application Image
+        run: just postgres-start
 
       - name: Build Application Image
         run: just build

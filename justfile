@@ -12,7 +12,7 @@ npm := `echo ${NPM:-npm}`
 cargo_home := `echo ${CARGO_HOME:-$HOME/.cargo}`
 builder_image := "ghcr.io/awesomecollection/rauthy-builder"
 builder_tag_date := "20250402"
-container_network := "bridge"
+container_network := "rauthy-dev"
 container_mailcrab := "rauthy-mailcrab"
 container_postgres := "rauthy-db-postgres"
 container_cargo_registry := "/usr/local/cargo/registry"
@@ -331,6 +331,16 @@ build image="ghcr.io/awesomecollection/rauthy": build-ui
     # make sure base image is up to date
     docker pull gcr.io/distroless/cc-debian12:nonroot
 
+    {{ docker }} run -d \
+      -e POSTGRES_USER=rauthy \
+      -e POSTGRES_PASSWORD=123SuperSafe \
+      -e POSTGRES_DB=rauthy \
+      --net {{ container_network }} \
+      -p 5432:5432 \
+      --name {{ container_postgres }} \
+      --restart unless-stopped \
+      docker.io/library/postgres:17.2-alpine
+
     mkdir -p out/empty
 
     # IMPORTANT: We can't use `cross` for the x86 build because it uses a way too old
@@ -342,7 +352,8 @@ build image="ghcr.io/awesomecollection/rauthy": build-ui
       -v {{ invocation_directory() }}/:/work/ \
       -w /work \
       {{ map_docker_user }} \
-      -e DATABASE_URL=postgresql://postgres:UWgkUJPp5zmgTpfh@db.ejzigqlxdqlyatgfvpij.supabase.co:5432/postgres \
+      --net {{ container_network }} \
+      -e DATABASE_URL=postgresql://rauthy:123SuperSafe@rauthy-db-postgres:5432/rauthy \
       {{ builder_image }}:{{ builder_tag_date }} \
       cargo build --release --target x86_64-unknown-linux-gnu
     cp target/x86_64-unknown-linux-gnu/release/rauthy out/rauthy_amd64
@@ -356,7 +367,8 @@ build image="ghcr.io/awesomecollection/rauthy": build-ui
       -v {{ invocation_directory() }}/:/work/ \
       -w /work \
       {{ map_docker_user }} \
-      -e DATABASE_URL=postgresql://postgres:UWgkUJPp5zmgTpfh@db.ejzigqlxdqlyatgfvpij.supabase.co:5432/postgres \
+      --net {{ container_network }} \
+      -e DATABASE_URL=postgresql://rauthy:123SuperSafe@rauthy-db-postgres:5432/rauthy \
       {{ builder_image }}:{{ builder_tag_date }} \
       cargo build --release --target aarch64-unknown-linux-gnu
     cp target/aarch64-unknown-linux-gnu/release/rauthy out/rauthy_arm64
