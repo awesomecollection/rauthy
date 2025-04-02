@@ -342,7 +342,6 @@ build image="ghcr.io/awesomecollection/rauthy": build-ui
       -v {{ invocation_directory() }}/:/work/ \
       -w /work \
       {{ map_docker_user }} \
-      --net host \
       -e DATABASE_URL=postgresql://postgres:UWgkUJPp5zmgTpfh@db.ejzigqlxdqlyatgfvpij.supabase.co:5432/postgres \
       {{ builder_image }}:{{ builder_tag_date }} \
       cargo build --release --target x86_64-unknown-linux-gnu
@@ -357,7 +356,6 @@ build image="ghcr.io/awesomecollection/rauthy": build-ui
       -v {{ invocation_directory() }}/:/work/ \
       -w /work \
       {{ map_docker_user }} \
-      --net host \
       -e DATABASE_URL=postgresql://postgres:UWgkUJPp5zmgTpfh@db.ejzigqlxdqlyatgfvpij.supabase.co:5432/postgres \
       {{ builder_image }}:{{ builder_tag_date }} \
       cargo build --release --target aarch64-unknown-linux-gnu
