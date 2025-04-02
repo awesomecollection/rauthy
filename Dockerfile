@@ -102,7 +102,7 @@ RUN mkdir -p out/empty # Create the empty directory here
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Stage 3: Final Runtime Image
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-FROM alpine:latest AS final # Keep this for now
+FROM alpine:latest AS final
 
 # Automatically available buildx args, declare them again
 ARG TARGETPLATFORM
