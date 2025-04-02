@@ -89,4 +89,6 @@ jobs:
       #   run: just build-builder  # Uses values from Justfile
 
       - name: Build Application Image
+        env:
+          DATABASE_URL: "postgresql://postgres:UWgkUJPp5zmgTpfh@db.ejzigqlxdqlyatgfvpij.supabase.co:5432/postgres"
         run: just build
