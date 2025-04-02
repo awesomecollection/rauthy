@@ -69,4 +69,4 @@ jobs:
       #   run: just build-builder  # Uses values from Justfile
 
       - name: Build Application Image
-        run: just build  # Uses values from Justfile
+        run: just build
