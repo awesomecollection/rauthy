@@ -92,7 +92,7 @@ jobs:
             DATABASE_URL=postgresql://rauthy:123SuperSafe@postgres:5432/rauthy
             # You can pass other ARGs defined in your Dockerfile here if needed
             # RUST_VERSION=1.85
-            # NODE_VERSION=18
+            # NODE_VERSION=22.14.0
           # Enable build caching using GitHub Actions cache
           cache-from: type=gha
           cache-to: type=gha,mode=max

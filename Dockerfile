@@ -64,11 +64,11 @@ RUN rm -f src/main.rs
 
 # Copy frontend package definitions
 COPY frontend/package.json frontend/package-lock.json* ./frontend/
+# Copy the rest of the frontend source code (ensure this happens early)
+COPY frontend/ ./frontend/
 # Install frontend dependencies (cache this layer)
 RUN npm install --prefix frontend
 
-# Copy the rest of the frontend source code
-COPY frontend/ ./frontend/
 # Build the frontend static assets
 # This assumes the output goes to frontend/dist or similar,
 # and subsequent steps or the Rust build process move them to static/ and templates/
