@@ -10,8 +10,8 @@ docker := `echo ${DOCKER:-docker}`
 map_docker_user := if docker == "podman" { "" } else { "-u $USER" }
 npm := `echo ${NPM:-npm}`
 cargo_home := `echo ${CARGO_HOME:-$HOME/.cargo}`
-builder_image := "ghcr.io/sebadob/rauthy-builder"
-builder_tag_date := "20250311"
+builder_image := "ghcr.io/awesomecollection/rauthy-builder"
+builder_tag_date := "20250402"
 container_network := "rauthy-dev"
 container_mailcrab := "rauthy-mailcrab"
 container_postgres := "rauthy-db-postgres"
@@ -323,7 +323,7 @@ build-docs:
     git add ../docs/*
 
 # Build the final container image.
-build image="ghcr.io/sebadob/rauthy": build-ui
+build image="ghcr.io/awesomecollection/rauthy": build-ui
     #!/usr/bin/env bash
     set -euxo pipefail
 
@@ -371,7 +371,7 @@ build image="ghcr.io/sebadob/rauthy": build-ui
     rm -rf out/
 
 # specify a custom image for building locally and change `push` to `load` to not push but only load it into your local docker context
-build-builder image="ghcr.io/sebadob/rauthy-builder" push="push":
+build-builder image="ghcr.io/awesomecollection/rauthy-builder" push="push":
     #!/usr/bin/env bash
     set -euxo pipefail
 
@@ -417,9 +417,9 @@ publish-latest:
     set -euxo pipefail
 
     # the `latest` image will always point to the postgres x86 version, which is used the most (probably)
-    {{ docker }} pull ghcr.io/sebadob/rauthy:$TAG
-    {{ docker }} tag ghcr.io/sebadob/rauthy:$TAG ghcr.io/sebadob/rauthy:latest
-    {{ docker }} push ghcr.io/sebadob/rauthy:latest
+    {{ docker }} pull ghcr.io/awesomecollection/rauthy:$TAG
+    {{ docker }} tag ghcr.io/awesomecollection/rauthy:$TAG ghcr.io/awesomecollection/rauthy:latest
+    {{ docker }} push ghcr.io/awesomecollection/rauthy:latest
 
 # should be run before submitting a PR to make sure everything is fine
 pre-pr-checks: build-ui fmt test-hiqlite test-postgres clippy
