@@ -308,6 +308,7 @@ build-ui:
 
     # build the frontend
     cd frontend
+    {{ npm }} install
     {{ npm }} run build
     cd ..
 
