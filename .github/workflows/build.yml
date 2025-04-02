@@ -16,6 +16,21 @@ jobs:
       contents: read
       packages: write
 
+    services:
+      postgres:
+        image: postgres:17.2-alpine
+        env:
+          POSTGRES_USER: rauthy
+          POSTGRES_PASSWORD: 123SuperSafe
+          POSTGRES_DB: rauthy
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U rauthy"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -52,34 +67,41 @@ jobs:
       # - name: Build Builder Image
       #   run: just build-builder  # Uses values from Justfile
 
-      - name: Start PostgreSQL
-        run: just postgres-start
+      # - name: Start PostgreSQL
+      #   run: just postgres-start
       
-      - name: Wait for PostgreSQL to be Ready
-        run: |
-          echo "Waiting for PostgreSQL to be ready..."
-          for i in {1..15}; do
-            if docker exec rauthy-db-postgres pg_isready -U rauthy; then
-              echo "PostgreSQL is ready!"
-              exit 0
-            fi
-            echo "Still waiting for PostgreSQL..."
-            sleep 3
-          done
-          echo "PostgreSQL did not become ready in time" >&2
-          exit 1
+      # - name: Wait for PostgreSQL to be Ready
+      #   run: |
+      #     echo "Waiting for PostgreSQL to be ready..."
+      #     for i in {1..15}; do
+      #       if docker exec rauthy-db-postgres pg_isready -U rauthy; then
+      #         echo "PostgreSQL is ready!"
+      #         exit 0
+      #       fi
+      #       echo "Still waiting for PostgreSQL..."
+      #       sleep 3
+      #     done
+      #     echo "PostgreSQL did not become ready in time" >&2
+      #     exit 1
 
-      - name: Debug PostgreSQL Status
-        run: |
-          echo "PostgreSQL containers:"
-          docker ps
-          echo "Checking if PostgreSQL is listening on port 5432..."
-          netstat -tulnp | grep 5432 || echo "PostgreSQL is not listening!"
+      # - name: Debug PostgreSQL Status
+      #   run: |
+      #     echo "PostgreSQL containers:"
+      #     docker ps
+      #     echo "Checking if PostgreSQL is listening on port 5432..."
+      #     netstat -tulnp | grep 5432 || echo "PostgreSQL is not listening!"
 
-      - name: Debug PostgreSQL Connection
-        run: |
-          echo "Checking if PostgreSQL accepts connections..."
-          PGPASSWORD=123SuperSafe psql -h rauthy-db-postgres -U rauthy -d rauthy -c '\dt' || echo "Failed to connect to PostgreSQL"
+      # - name: Debug PostgreSQL Connection
+      #   run: |
+      #     echo "Checking if PostgreSQL accepts connections..."
+      #     PGPASSWORD=123SuperSafe psql -h rauthy-db-postgres -U rauthy -d rauthy -c '\dt' || echo "Failed to connect to PostgreSQL"
+      
+      - name: Run Migrations
+        env:
+          DATABASE_URL: postgresql://rauthy:123SuperSafe@localhost:5432/rauthy
+        run: just migrate-postgres
 
       - name: Build Application Image
+        env:
+          DATABASE_URL: postgresql://rauthy:123SuperSafe@localhost:5432/rauthy
         run: just build
