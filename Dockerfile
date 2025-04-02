@@ -94,7 +94,7 @@ RUN mkdir -p out/empty # Create the empty directory here
 # Stage 3: Final Runtime Image
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Use a minimal distroless image with C library support
-FROM gcr.io/distroless/cc-debian12:nonroot
+FROM alpine:latest AS final
 
 # Automatically available buildx args, declare them again
 ARG TARGETPLATFORM
@@ -107,10 +107,7 @@ USER $TARGET_USER
 WORKDIR /app
 
 # Create necessary directories for data, TLS, static assets, and templates
-RUN /bin/mkdir -p /app/data
-RUN /bin/mkdir -p /app/tls
-RUN /bin/mkdir -p /app/static/v1
-RUN /bin/mkdir -p /app/templates/html
+RUN mkdir -p /app/data /app/tls /app/static/v1 /app/templates/html
 
 # Copy the compiled binary from the 'build-release' stage
 COPY --from=build-release --chown=$TARGET_USER /app/out/rauthy_${TARGETARCH} ./rauthy
