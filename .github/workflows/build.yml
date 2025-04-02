@@ -58,7 +58,7 @@ jobs:
         run: docker network ls
 
       - name: Set up environment
-        run: echo run: echo "DATABASE_URL=postgresql://rauthy:123SuperSafe@localhost:5432/rauthy" >> $GITHUB_ENV
+        run: echo "DATABASE_URL=postgresql://rauthy:123SuperSafe@localhost:5432/rauthy" >> $GITHUB_ENV
       
       - name: Debug PostgreSQL Connection
         run: |
