@@ -331,6 +331,9 @@ build image="ghcr.io/awesomecollection/rauthy": build-ui
     # make sure base image is up to date
     docker pull gcr.io/distroless/cc-debian12:nonroot
 
+    # Start PostgreSQL using Justfile
+    just postgres-start
+
     mkdir -p out/empty
 
     # IMPORTANT: We can't use `cross` for the x86 build because it uses a way too old
@@ -358,7 +361,7 @@ build image="ghcr.io/awesomecollection/rauthy": build-ui
       -w /work \
       {{ map_docker_user }} \
       --net {{ container_network }} \
-      -e DATABASE_URL=ppostgresql://rauthy:123SuperSafe@localhost:5432/rauthy \
+      -e DATABASE_URL=postgresql://rauthy:123SuperSafe@localhost:5432/rauthy \
       {{ builder_image }}:{{ builder_tag_date }} \
       cargo build --release --target aarch64-unknown-linux-gnu
     cp target/aarch64-unknown-linux-gnu/release/rauthy out/rauthy_arm64

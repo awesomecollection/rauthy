@@ -16,20 +16,20 @@ jobs:
       contents: read
       packages: write
 
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_USER: rauthy
-          POSTGRES_PASSWORD: 123SuperSafe
-          POSTGRES_DB: rauthy
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U postgres"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+    # services:
+    #   postgres:
+    #     image: postgres:15
+    #     env:
+    #       POSTGRES_USER: rauthy
+    #       POSTGRES_PASSWORD: 123SuperSafe
+    #       POSTGRES_DB: rauthy
+    #     ports:
+    #       - 5432:5432
+    #     options: >-
+    #       --health-cmd "pg_isready -U postgres"
+    #       --health-interval 10s
+    #       --health-timeout 5s
+    #       --health-retries 5
 
     steps:
       - name: Checkout repository
@@ -62,26 +62,26 @@ jobs:
           mkdir -p /home/runner/.cargo/registry
           sudo chown -R 1001:118 /home/runner/.cargo/registry
 
-      - name: Wait for PostgreSQL to be ready
-        run: |
-          for i in {1..10}; do
-            if PGPASSWORD=123SuperSafe psql -h localhost -U rauthy -d rauthy -c '\q'; then
-              echo "PostgreSQL is ready!"
-              exit 0
-            fi
-            echo "Waiting for PostgreSQL..."
-            sleep 3
-          done
-          echo "PostgreSQL did not become ready in time" >&2
-          exit 1
+      # - name: Wait for PostgreSQL to be ready
+      #   run: |
+      #     for i in {1..10}; do
+      #       if PGPASSWORD=123SuperSafe psql -h localhost -U rauthy -d rauthy -c '\q'; then
+      #         echo "PostgreSQL is ready!"
+      #         exit 0
+      #       fi
+      #       echo "Waiting for PostgreSQL..."
+      #       sleep 3
+      #     done
+      #     echo "PostgreSQL did not become ready in time" >&2
+      #     exit 1
 
-      - name: Debug PostgreSQL Status
-        run: |
-          docker ps
-          netstat -tulnp | grep 5432 || echo "PostgreSQL is not listening!"
+      # - name: Debug PostgreSQL Status
+      #   run: |
+      #     docker ps
+      #     netstat -tulnp | grep 5432 || echo "PostgreSQL is not listening!"
 
-      - name: Debug PostgreSQL Connection
-        run: PGPASSWORD=123SuperSafe psql -h localhost -U rauthy -d rauthy -c '\dt'
+      # - name: Debug PostgreSQL Connection
+      #   run: PGPASSWORD=123SuperSafe psql -h localhost -U rauthy -d rauthy -c '\dt'
 
       # - name: Build Builder Image
       #   run: just build-builder  # Uses values from Justfile
