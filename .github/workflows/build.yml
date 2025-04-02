@@ -56,6 +56,11 @@ jobs:
 
       - name: List Docker networks (debugging step)
         run: docker network ls
+      
+      - name: Fix Cargo registry permissions
+         run: |
+           mkdir -p /home/runner/.cargo/registry
+           sudo chown -R 1001:118 /home/runner/.cargo/registry
 
       - name: Set up environment
         run: echo "DATABASE_URL=postgresql://rauthy:123SuperSafe@localhost:5432/rauthy" >> $GITHUB_ENV
