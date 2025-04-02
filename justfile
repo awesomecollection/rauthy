@@ -343,7 +343,7 @@ build image="ghcr.io/awesomecollection/rauthy": build-ui
       -w /work \
       {{ map_docker_user }} \
       --net {{ container_network }} \
-      -e DATABASE_URL=postgresql://rauthy:123SuperSafe@rauthy-db-postgres:5432/rauthy \
+      -e DATABASE_URL=postgresql://postgres:qkojA91WN0tWqXm8@db.mxerxkabgaxeqazcauys.supabase.co:5432/postgres \
       {{ builder_image }}:{{ builder_tag_date }} \
       cargo build --release --target x86_64-unknown-linux-gnu
     cp target/x86_64-unknown-linux-gnu/release/rauthy out/rauthy_amd64
@@ -358,7 +358,7 @@ build image="ghcr.io/awesomecollection/rauthy": build-ui
       -w /work \
       {{ map_docker_user }} \
       --net {{ container_network }} \
-      -e DATABASE_URL=postgresql://rauthy:123SuperSafe@rauthy-db-postgres:5432/rauthy \
+      -e DATABASE_URL=postgresql://postgres:qkojA91WN0tWqXm8@db.mxerxkabgaxeqazcauys.supabase.co:5432/postgres \
       {{ builder_image }}:{{ builder_tag_date }} \
       cargo build --release --target aarch64-unknown-linux-gnu
     cp target/aarch64-unknown-linux-gnu/release/rauthy out/rauthy_arm64
