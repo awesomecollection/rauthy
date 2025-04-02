@@ -43,6 +43,9 @@ WORKDIR /app
 # This stage performs the actual compilation based on the target platform
 FROM builder AS build-release
 
+# Explicitly set the PATH to include Node.js/npm
+ENV PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/lib/nodejs"
+
 # Re-declare ARGs required in this stage (passed by buildx)
 ARG TARGETPLATFORM
 ARG TARGETARCH
@@ -59,7 +62,11 @@ ENV DATABASE_URL=${DATABASE_URL}
 COPY Cargo.toml Cargo.lock ./
 # Cache Rust dependencies
 RUN mkdir src && echo "fn main() {}" > src/main.rs
-RUN cargo build --release --target ${TARGETARCH}-unknown-linux-gnu --bin rauthy || true
+# Explicitly add the target (again, to be sure)
+RUN rustup target add ${TARGETARCH}-unknown-linux-gnu
+# Ensure the default toolchain is set (though it should be by default)
+RUN rustup default stable
+RUN cargo build --release --target ${TARGETARCH}-unknown-linux-gnu --bin rauthy
 RUN rm -f src/main.rs
 
 # --- Frontend UI Build ---
@@ -74,7 +81,7 @@ RUN npm install --prefix frontend
 # Build the frontend static assets
 # This assumes the output goes to frontend/dist or similar,
 # and subsequent steps or the Rust build process move them to static/ and templates/
-# Adjust if npm run build directly outputs to the final static/ and templates/ directories.
+# Adjust if npm run build directly outputs to the final locations.
 RUN npm run build --prefix frontend
 
 # --- Final Backend Build ---
@@ -95,8 +102,7 @@ RUN mkdir -p out/empty # Create the empty directory here
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Stage 3: Final Runtime Image
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# Use a minimal distroless image with C library support
-FROM alpine:latest AS final
+FROM alpine:latest AS final # Keep this for now
 
 # Automatically available buildx args, declare them again
 ARG TARGETPLATFORM
