@@ -331,16 +331,6 @@ build image="ghcr.io/awesomecollection/rauthy": build-ui
     # make sure base image is up to date
     docker pull gcr.io/distroless/cc-debian12:nonroot
 
-    {{ docker }} run -d \
-      -e POSTGRES_USER=rauthy \
-      -e POSTGRES_PASSWORD=123SuperSafe \
-      -e POSTGRES_DB=rauthy \
-      --net {{ container_network }} \
-      -p 5432:5432 \
-      --name {{ container_postgres }} \
-      --restart unless-stopped \
-      docker.io/library/postgres:17.2-alpine
-
     mkdir -p out/empty
 
     # IMPORTANT: We can't use `cross` for the x86 build because it uses a way too old
