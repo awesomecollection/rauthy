@@ -16,6 +16,21 @@ jobs:
       contents: read
       packages: write
 
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: rauthy
+          POSTGRES_PASSWORD: 123SuperSafe
+          POSTGRES_DB: rauthy
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -34,24 +49,21 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install dependencies
-        run: sudo apt-get update && sudo apt-get install -y just
-
+        run: sudo apt-get update && sudo apt-get install -y just libpq-dev
+      
       - name: Ensure Docker network exists
         run: docker network create rauthy-dev || true
 
       - name: List Docker networks (debugging step)
         run: docker network ls
+
+      - name: Set up environment
+        run: echo run: echo "DATABASE_URL=postgresql://rauthy:123SuperSafe@localhost:5432/rauthy" >> $GITHUB_ENV
       
-      - name: Fix Cargo registry permissions
+      - name: Debug PostgreSQL Connection
         run: |
-          mkdir -p /home/runner/.cargo/registry
-          sudo chown -R 1001:118 /home/runner/.cargo/registry
-      
-      - name: Run setup
-        run: |
-          export TERM=xterm
-          just setup
-        shell: /usr/bin/bash -e {0}
+          echo "Testing DB Connection..."
+          PGPASSWORD=123SuperSafe psql -h localhost -U rauthy -d rauthy -c '\dt'
 
       # - name: Build Builder Image
       #   run: just build-builder  # Uses values from Justfile
