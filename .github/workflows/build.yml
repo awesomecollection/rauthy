@@ -36,6 +36,12 @@ jobs:
       - name: Install dependencies
         run: sudo apt-get update && sudo apt-get install -y just
 
+      - name: Ensure Docker network exists
+        run: docker network create rauthy-dev || true
+
+      - name: List Docker networks (debugging step)
+        run: docker network ls
+
       - name: Build Builder Image
         run: just build-builder  # Uses values from Justfile
 
