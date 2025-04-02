@@ -63,7 +63,7 @@ COPY Cargo.toml Cargo.lock ./
 # Cache Rust dependencies
 RUN mkdir src && echo "fn main() {}" > src/main.rs
 # Explicitly add the target (again, to be sure)
-RUN rustup target add ${TARGETARCH}-unknown-linux-gnu
+RUN PATH="$PATH:/root/.cargo/bin" && rustup target add ${TARGETARCH}-unknown-linux-gnu
 # Ensure the default toolchain is set (though it should be by default)
 RUN rustup default stable
 RUN cargo build --release --target ${TARGETARCH}-unknown-linux-gnu --bin rauthy
