@@ -68,7 +68,7 @@ RUN mkdir src && echo "fn main() {}" > src/main.rs
 RUN /root/.cargo/bin/rustup target add ${TARGETARCH}-unknown-linux-gnu
 # Ensure the default toolchain is set (though it should be by default)
 RUN rustup default stable
-RUN chmod -R u+w /root/.cargo
+RUN chmod -R 700 /root/.cargo
 RUN cargo build --release --target ${TARGETARCH}-unknown-linux-gnu --bin rauthy
 RUN rm -f src/main.rs
 
