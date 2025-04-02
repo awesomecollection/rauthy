@@ -58,14 +58,13 @@ ENV DATABASE_URL=${DATABASE_URL}
 
 # --- Rust Backend Build Prep ---
 
+USER root
+
 # Copy Rust dependency definition files
 COPY Cargo.toml Cargo.lock ./
 # Cache Rust dependencies
 RUN mkdir src && echo "fn main() {}" > src/main.rs
 # Explicitly add the target (again, to be sure)
-RUN echo "Checking for rustup at /root/.cargo/bin:"
-RUN ls -al /root/.cargo/bin/rustup
-RUN echo "Current PATH: $PATH"
 RUN /root/.cargo/bin/rustup target add ${TARGETARCH}-unknown-linux-gnu
 # Ensure the default toolchain is set (though it should be by default)
 RUN rustup default stable
