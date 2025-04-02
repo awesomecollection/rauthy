@@ -10,7 +10,7 @@ FROM ${BASE_IMAGE} AS builder
 # Set frontend to noninteractive
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install build dependencies (compilers, clang) AND Node.js/npm
+# Install build dependencies (compilers, clang) AND Node.js/npm AND OpenSSL
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     clang \
@@ -20,6 +20,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && curl -fsSL https://deb.nodesource.com/setup_${NODE_VERSION}.x | bash - \
     && apt-get install -y nodejs \
+    # Install OpenSSL development libraries
+    libssl-dev \
     # Clean up apt cache
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
