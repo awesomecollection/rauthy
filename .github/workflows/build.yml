@@ -53,8 +53,8 @@ jobs:
           sudo apt-get update && sudo apt-get install -y just libpq-dev
           # cargo install sqlx-cli --no-default-features --features postgres
       
-      - name: Ensure Docker network exists
-        run: docker network create rauthy-dev || true
+      # - name: Ensure Docker network exists
+      #   run: docker network create rauthy-dev || true
 
       - name: List Docker networks (debugging step)
         run: docker network ls
