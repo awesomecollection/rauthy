@@ -7,7 +7,7 @@ rauthy-client/examples/*/.idea
 .vscode
 .helix
 .lapce
-.env
+# .env
 .test_pid
 data
 frontend/.next
