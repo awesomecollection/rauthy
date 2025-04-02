@@ -44,6 +44,11 @@ jobs:
 
       - name: Build Builder Image
         run: just build-builder  # Uses values from Justfile
+      
+      - name: Fix Cargo registry permissions
+        run: |
+          mkdir -p /home/runner/.cargo/registry
+          sudo chown -R 1001:118 /home/runner/.cargo/registry
 
       - name: Build Application Image
         run: just build  # Uses values from Justfile
