@@ -358,7 +358,7 @@ build image="ghcr.io/awesomecollection/rauthy": build-ui
       -w /work \
       {{ map_docker_user }} \
       --net host \
-      -e DATABASE_URL=postgresql://postgres:UWgkUJPp5zmgTpfh@db.ejzigqlxdqlyatgfvpij.supabase.co:5432/postgres \ \
+      -e DATABASE_URL=postgresql://postgres:UWgkUJPp5zmgTpfh@db.ejzigqlxdqlyatgfvpij.supabase.co:5432/postgres \
       {{ builder_image }}:{{ builder_tag_date }} \
       cargo build --release --target aarch64-unknown-linux-gnu
     cp target/aarch64-unknown-linux-gnu/release/rauthy out/rauthy_arm64
