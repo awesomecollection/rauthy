@@ -43,8 +43,8 @@ WORKDIR /app
 # This stage performs the actual compilation based on the target platform
 FROM builder AS build-release
 
-# Explicitly set the PATH to include Node.js/npm
-ENV PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/lib/nodejs"
+# Explicitly set the PATH to include Node.js/npm AND Rustup
+ENV PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/lib/nodejs:/root/.cargo/bin"
 
 # Re-declare ARGs required in this stage (passed by buildx)
 ARG TARGETPLATFORM
@@ -102,7 +102,7 @@ RUN mkdir -p out/empty # Create the empty directory here
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Stage 3: Final Runtime Image
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-FROM alpine:latest AS final
+FROM alpine:latest AS final # Keep this for now
 
 # Automatically available buildx args, declare them again
 ARG TARGETPLATFORM
