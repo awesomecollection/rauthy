@@ -52,27 +52,13 @@ RUN case ${TARGETARCH} in \
         *) echo "Unsupported architecture: ${TARGETARCH}" && exit 1 ;; \
     esac
 
+# --- Copy all source files ---
+COPY . .
+
 # --- Frontend UI Build ---
-# Copy frontend package definitions and build frontend first
-COPY frontend/package.json frontend/package-lock.json* ./frontend/
-COPY frontend/ ./frontend/
 RUN cd frontend && npm install && npm run build
 
 # --- Rust Backend Build ---
-# Copy Cargo files first for better caching
-COPY Cargo.toml Cargo.lock ./
-
-# Create dummy main.rs for dependency caching
-RUN mkdir -p src && \
-    echo "fn main() {}" > src/main.rs && \
-    # Build dependencies
-    cargo build --release --target $(cat /tmp/target_triple) && \
-    rm src/main.rs
-
-# Copy the rest of the source code
-COPY . .
-
-# Build the final binary
 RUN cargo build --release --target $(cat /tmp/target_triple) && \
     mkdir -p out && \
     cp target/$(cat /tmp/target_triple)/release/rauthy out/rauthy_${TARGETARCH} && \
