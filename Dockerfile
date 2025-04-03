@@ -73,31 +73,30 @@ RUN cargo build --release --target $(cat /tmp/target_triple) && \
     cp target/$(cat /tmp/target_triple)/release/rauthy out/rauthy_${TARGETARCH}
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# Stage 4: Final Runtime Image
+# Stage 4: File Structure Setup
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+FROM scratch AS file-structure
+WORKDIR /app
+COPY --from=frontend-builder /app/static/v1/ static/v1/
+COPY --from=frontend-builder /app/templates/html/ templates/html/
+COPY --from=build-release /app/out/rauthy_${TARGETARCH} rauthy
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Stage 5: Final Runtime Image
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 FROM gcr.io/distroless/cc-debian12:nonroot
 
-# docker buildx args automatically available
 ARG BUILDPLATFORM
 ARG TARGETPLATFORM
 ARG TARGETOS
 ARG TARGETARCH
-
-# Set target user from build arg
 ARG TARGET_USER="10001:10001"
-USER $TARGET_USER
 
+USER $TARGET_USER
 WORKDIR /app
 
-# Create necessary directories
-RUN mkdir -p data static/v1 templates/html
-
-# Copy binary from build stage
-COPY --from=build-release --chown=$TARGET_USER /app/out/rauthy_$TARGETARCH ./rauthy
-
-# Copy frontend assets (only from frontend-builder)
-COPY --from=frontend-builder --chown=$TARGET_USER /app/static/v1/ ./static/v1/
-COPY --from=frontend-builder --chown=$TARGET_USER /app/templates/html/ ./templates/html/
+# Copy from file-structure stage
+COPY --from=file-structure /app/ ./
 
 # Copy TLS certificates and config
 COPY --chown=$TARGET_USER ./tls/ca-chain.pem ./tls/ca-chain.pem
@@ -105,8 +104,11 @@ COPY --chown=$TARGET_USER ./tls/cert-chain.pem ./tls/cert-chain.pem
 COPY --chown=$TARGET_USER ./tls/key.pem ./tls/key.pem
 COPY --chown=$TARGET_USER ./rauthy-local_test.cfg ./rauthy-local_test.cfg
 
+# Create empty data directory
+COPY --chown=$TARGET_USER --from=scratch /. data/
+
 # Label with metadata
-LABEL org.opencontainers.image.created="2025-04-03 04:12:12" \
+LABEL org.opencontainers.image.created="2025-04-03 04:20:20" \
       org.opencontainers.image.authors="type-checker" \
       org.opencontainers.image.source="https://github.com/awesomecollection/rauthy"
 
