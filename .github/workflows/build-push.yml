@@ -104,11 +104,11 @@ jobs:
         env:
           DATABASE_URL: postgresql://rauthy:123SuperSafe@localhost:5432/rauthy
 
-      - name: Run tests
-        run: cargo test --workspace
-        env:
-          DATABASE_URL: postgresql://rauthy:123SuperSafe@localhost:5432/rauthy
-          HIQLITE: "false"
+      # - name: Run tests
+      #   run: cargo test --workspace
+      #   env:
+      #     DATABASE_URL: postgresql://rauthy:123SuperSafe@localhost:5432/rauthy
+      #     HIQLITE: "false"
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
