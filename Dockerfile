@@ -4,7 +4,7 @@
 FROM node:20-slim AS frontend-builder
 WORKDIR /app
 
-# Copy frontend files and build
+# Copy frontend files
 COPY frontend/ ./
 COPY static/v1/ static/v1/
 COPY templates/html/ templates/html/
@@ -17,13 +17,11 @@ RUN npm ci && \
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 FROM rust:1.85-bookworm AS builder
 
-# Set frontend to noninteractive
 ENV DEBIAN_FRONTEND=noninteractive
 ENV CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER=x86_64-linux-gnu-gcc \
     CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc \
     PATH="/usr/local/cargo/bin:$PATH"
 
-# Install dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     clang \
@@ -36,76 +34,68 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Add Rust targets for cross-compilation
 RUN rustup target add aarch64-unknown-linux-gnu x86_64-unknown-linux-gnu && \
     rustup component add rustfmt
 
 WORKDIR /app
+COPY . .
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# Stage 3: Build Artifacts
+# Stage 3: Build Binary
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 FROM builder AS build-release
 
-# Re-declare ARGs required in this stage
 ARG TARGETPLATFORM
 ARG TARGETARCH
-ARG DATABASE_URL
-ENV DATABASE_URL=${DATABASE_URL}
 
-# Map TARGETARCH to Rust target triple
 RUN case ${TARGETARCH} in \
         "amd64") echo "x86_64-unknown-linux-gnu" > /tmp/target_triple ;; \
         "arm64") echo "aarch64-unknown-linux-gnu" > /tmp/target_triple ;; \
         *) echo "Unsupported architecture: ${TARGETARCH}" && exit 1 ;; \
     esac
 
-# Copy source code
-COPY . .
+# Install sqlx-cli for migrations
+RUN cargo install sqlx-cli --no-default-features --features rustls,postgres
 
 # Build the backend
 RUN cargo build --release --target $(cat /tmp/target_triple) && \
-    mkdir -p out && \
-    cp target/$(cat /tmp/target_triple)/release/rauthy out/rauthy_${TARGETARCH} && \
-    mkdir -p out/empty && \
-    mkdir -p out/static/v1 && \
-    mkdir -p out/templates/html
+    mkdir -p out/empty out/static/v1 out/templates/html && \
+    cp target/$(cat /tmp/target_triple)/release/rauthy out/rauthy_${TARGETARCH}
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Stage 4: Final Runtime Image
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 FROM gcr.io/distroless/cc-debian12:nonroot
 
-ARG BUILDPLATFORM
-ARG TARGETPLATFORM
-ARG TARGETOS
 ARG TARGETARCH
 ARG TARGET_USER="10001:10001"
 
-USER $TARGET_USER
 WORKDIR /app
 
-# Copy directories and files
-COPY --from=build-release --chown=$TARGET_USER /app/out/rauthy_$TARGETARCH ./rauthy
-COPY --from=build-release --chown=$TARGET_USER /app/out/empty/ ./data/
-COPY --from=build-release --chown=$TARGET_USER /app/out/static/v1/ ./static/v1/
-COPY --from=build-release --chown=$TARGET_USER /app/out/templates/html/ ./templates/html/
+# Copy binary and create necessary directories
+COPY --from=build-release /app/out/rauthy_${TARGETARCH} /app/rauthy
+COPY --from=build-release /app/migrations /app/migrations
 
 # Copy frontend assets
-COPY --from=frontend-builder --chown=$TARGET_USER /app/static/v1/ ./static/v1/
-COPY --from=frontend-builder --chown=$TARGET_USER /app/templates/html/ ./templates/html/
+COPY --from=frontend-builder /app/static/v1/ /app/static/v1/
+COPY --from=frontend-builder /app/templates/html/ /app/templates/html/
 
 # Copy TLS certificates and config
-COPY --chown=$TARGET_USER ./tls/ca-chain.pem ./tls/ca-chain.pem
-COPY --chown=$TARGET_USER ./tls/cert-chain.pem ./tls/cert-chain.pem
-COPY --chown=$TARGET_USER ./tls/key.pem ./tls/key.pem
-COPY --chown=$TARGET_USER ./rauthy-local_test.cfg ./rauthy-local_test.cfg
+COPY ./tls/ca-chain.pem /app/tls/ca-chain.pem
+COPY ./tls/cert-chain.pem /app/tls/cert-chain.pem
+COPY ./tls/key.pem /app/tls/key.pem
+COPY ./rauthy-local_test.cfg /app/rauthy-local_test.cfg
 
-# Label with metadata
-LABEL org.opencontainers.image.created="2025-04-03 05:00:46" \
+# Create data directory
+COPY --from=build-release /app/out/empty /app/data/
+
+USER ${TARGET_USER}
+
+LABEL org.opencontainers.image.created="2025-04-03 05:51:08" \
       org.opencontainers.image.authors="type-checker" \
       org.opencontainers.image.source="https://github.com/awesomecollection/rauthy"
 
 EXPOSE 8080
 
-CMD ["/app/rauthy"]
+# Run migrations at startup
+CMD ["/app/rauthy", "--migrate"]
