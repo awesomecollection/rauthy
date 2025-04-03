@@ -7,14 +7,15 @@ WORKDIR /app
 # Copy frontend files and build
 COPY frontend/ ./
 RUN npm ci && \
-    npm run build
+    npm run build && \
+    mkdir -p build
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Stage 2: Backend Builder Base
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 FROM rust:1.85-bookworm AS builder
 
-# Set frontend to noninteractive and current timestamp
+# Set frontend to noninteractive
 ENV DEBIAN_FRONTEND=noninteractive
 ENV CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER=x86_64-linux-gnu-gcc \
     CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc \
@@ -57,7 +58,7 @@ RUN case ${TARGETARCH} in \
         *) echo "Unsupported architecture: ${TARGETARCH}" && exit 1 ;; \
     esac
 
-# Copy source code and build
+# Copy source code
 COPY . .
 
 # Build the backend
@@ -83,12 +84,16 @@ USER $TARGET_USER
 
 WORKDIR /app
 
+# Create necessary directories
+RUN mkdir -p /app/data /app/tls /app/static/v1 /app/templates/html
+
 # Copy the compiled binary and empty data directory
 COPY --from=build-release --chown=$TARGET_USER /app/out/rauthy_$TARGETARCH ./rauthy
 COPY --from=build-release --chown=$TARGET_USER /app/out/empty/ ./data/
 
-# Copy frontend assets from frontend-builder
-COPY --from=frontend-builder --chown=$TARGET_USER /app/build/ ./static/v1/
+# Copy frontend assets (both static files and templates)
+COPY --from=frontend-builder --chown=$TARGET_USER /app/static/v1/ ./static/v1/
+COPY --from=frontend-builder --chown=$TARGET_USER /app/templates/html/ ./templates/html/
 
 # Copy TLS certificates and config
 COPY --chown=$TARGET_USER ./tls/ca-chain.pem ./tls/ca-chain.pem
@@ -96,9 +101,11 @@ COPY --chown=$TARGET_USER ./tls/cert-chain.pem ./tls/cert-chain.pem
 COPY --chown=$TARGET_USER ./tls/key.pem ./tls/key.pem
 COPY --chown=$TARGET_USER ./rauthy-local_test.cfg ./rauthy-local_test.cfg
 
-# Label with metadata
-LABEL org.opencontainers.image.created="2025-04-03 03:06:42" \
+# Label with metadata (current timestamp: 2025-04-03 03:14:00)
+LABEL org.opencontainers.image.created="2025-04-03 03:14:00" \
       org.opencontainers.image.authors="type-checker" \
       org.opencontainers.image.source="https://github.com/awesomecollection/rauthy"
+
+EXPOSE 8080
 
 CMD ["/app/rauthy"]
