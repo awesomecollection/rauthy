@@ -1,12 +1,26 @@
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# Stage 1: Builder Base
+# Stage 1: Frontend Build
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+FROM node:20-slim AS frontend-builder
+WORKDIR /app
+
+# Copy frontend files and build
+COPY frontend/ ./
+RUN npm ci && \
+    npm run build
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Stage 2: Backend Builder Base
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 FROM rust:1.85-bookworm AS builder
 
-# Set frontend to noninteractive
+# Set frontend to noninteractive and current timestamp
 ENV DEBIAN_FRONTEND=noninteractive
+ENV CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER=x86_64-linux-gnu-gcc \
+    CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc \
+    PATH="/usr/local/cargo/bin:$PATH"
 
-# Install Node.js and other dependencies
+# Install dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     clang \
@@ -14,10 +28,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     g++-aarch64-linux-gnu \
     curl \
     ca-certificates \
-    gnupg \
-    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
-    && apt-get update \
-    && apt-get install -y nodejs \
+    postgresql-client \
     libssl-dev \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
@@ -26,16 +37,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN rustup target add aarch64-unknown-linux-gnu x86_64-unknown-linux-gnu && \
     rustup component add rustfmt
 
-# Set environment variables for cross-compilation linkers
-ENV CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER=x86_64-linux-gnu-gcc \
-    CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc \
-    PATH="/usr/local/cargo/bin:$PATH"
-
-# Set the working directory
 WORKDIR /app
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# Stage 2: Build Artifacts
+# Stage 3: Build Artifacts
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 FROM builder AS build-release
 
@@ -52,53 +57,48 @@ RUN case ${TARGETARCH} in \
         *) echo "Unsupported architecture: ${TARGETARCH}" && exit 1 ;; \
     esac
 
-# --- Copy all source files ---
+# Copy source code and build
 COPY . .
 
-# --- Frontend UI Build ---
-RUN cd frontend && npm install && npm run build
-
-# --- Rust Backend Build ---
+# Build the backend
 RUN cargo build --release --target $(cat /tmp/target_triple) && \
     mkdir -p out && \
     cp target/$(cat /tmp/target_triple)/release/rauthy out/rauthy_${TARGETARCH} && \
     mkdir -p out/empty
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# Stage 3: Final Runtime Image
+# Stage 4: Final Runtime Image
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-FROM alpine:latest AS final
+FROM gcr.io/distroless/cc-debian12:nonroot
 
+# docker buildx args automatically available
+ARG BUILDPLATFORM
 ARG TARGETPLATFORM
+ARG TARGETOS
 ARG TARGETARCH
 
-# Install necessary runtime dependencies
-RUN apk add --no-cache ca-certificates libgcc
+# Set target user from build arg
+ARG TARGET_USER="10001:10001"
+USER $TARGET_USER
 
-# Create necessary directories and set permissions
-RUN mkdir -p /app/data /app/tls /app/static/v1 /app/templates/html && \
-    adduser -D -u 10001 appuser && \
-    chown -R appuser:appuser /app
-
-USER appuser
 WORKDIR /app
 
-# Copy the compiled binary
-COPY --from=build-release --chown=appuser:appuser /app/out/rauthy_${TARGETARCH} ./rauthy
+# Copy the compiled binary and empty data directory
+COPY --from=build-release --chown=$TARGET_USER /app/out/rauthy_$TARGETARCH ./rauthy
+COPY --from=build-release --chown=$TARGET_USER /app/out/empty/ ./data/
 
-# Copy configuration and TLS certificates
-COPY --chown=appuser:appuser ./tls/ca-chain.pem ./tls/ca-chain.pem
-COPY --chown=appuser:appuser ./tls/cert-chain.pem ./tls/cert-chain.pem
-COPY --chown=appuser:appuser ./tls/key.pem ./tls/key.pem
-COPY --chown=appuser:appuser ./rauthy-local_test.cfg ./rauthy-local_test.cfg
+# Copy frontend assets from frontend-builder
+COPY --from=frontend-builder --chown=$TARGET_USER /app/build/ ./static/v1/
 
-# Copy the empty data directory structure
-COPY --from=build-release --chown=appuser:appuser /app/out/empty/ ./data/
+# Copy TLS certificates and config
+COPY --chown=$TARGET_USER ./tls/ca-chain.pem ./tls/ca-chain.pem
+COPY --chown=$TARGET_USER ./tls/cert-chain.pem ./tls/cert-chain.pem
+COPY --chown=$TARGET_USER ./tls/key.pem ./tls/key.pem
+COPY --chown=$TARGET_USER ./rauthy-local_test.cfg ./rauthy-local_test.cfg
 
-# Copy frontend assets
-COPY --from=build-release --chown=appuser:appuser /app/static/v1/ ./static/v1/
-COPY --from=build-release --chown=appuser:appuser /app/templates/html/ ./templates/html/
-
-EXPOSE 8080
+# Label with metadata
+LABEL org.opencontainers.image.created="2025-04-03 03:06:42" \
+      org.opencontainers.image.authors="type-checker" \
+      org.opencontainers.image.source="https://github.com/awesomecollection/rauthy"
 
 CMD ["/app/rauthy"]

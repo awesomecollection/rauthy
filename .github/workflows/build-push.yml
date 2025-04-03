@@ -20,6 +20,7 @@ jobs:
           POSTGRES_USER: rauthy
           POSTGRES_PASSWORD: 123SuperSafe
           POSTGRES_DB: rauthy
+          POSTGRES_HOST_AUTH_METHOD: trust
         ports:
           - 5432:5432
         options: >-
@@ -27,10 +28,16 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+          --health-start-period 5s
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Set up database
+        run: |
+          PGPASSWORD=123SuperSafe psql -h localhost -U rauthy -d rauthy -c '\l'
+        continue-on-error: true
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
@@ -66,7 +73,3 @@ jobs:
             DATABASE_URL=postgresql://rauthy:123SuperSafe@postgres:5432/rauthy
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
-      # Optional: Print image digest
-      # - name: Print image digest
-      #   run: echo ${{ steps.build-push.outputs.digest }}
