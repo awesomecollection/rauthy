@@ -4,15 +4,11 @@
 FROM node:20-slim AS frontend-builder
 WORKDIR /app
 
-# Create output directories
-RUN mkdir -p static/v1 templates/html
-
-# Copy frontend files
+# Copy frontend files and build
 COPY frontend/ ./
 COPY static/v1/ static/v1/
 COPY templates/html/ templates/html/
 
-# Build frontend
 RUN npm ci && \
     npm run build
 
@@ -70,19 +66,13 @@ COPY . .
 # Build the backend
 RUN cargo build --release --target $(cat /tmp/target_triple) && \
     mkdir -p out && \
-    cp target/$(cat /tmp/target_triple)/release/rauthy out/rauthy_${TARGETARCH}
+    cp target/$(cat /tmp/target_triple)/release/rauthy out/rauthy_${TARGETARCH} && \
+    mkdir -p out/empty && \
+    mkdir -p out/static/v1 && \
+    mkdir -p out/templates/html
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# Stage 4: File Structure Setup
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-FROM scratch AS file-structure
-WORKDIR /app
-COPY --from=frontend-builder /app/static/v1/ static/v1/
-COPY --from=frontend-builder /app/templates/html/ templates/html/
-COPY --from=build-release /app/out/rauthy_${TARGETARCH} rauthy
-
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# Stage 5: Final Runtime Image
+# Stage 4: Final Runtime Image
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 FROM gcr.io/distroless/cc-debian12:nonroot
 
@@ -95,8 +85,15 @@ ARG TARGET_USER="10001:10001"
 USER $TARGET_USER
 WORKDIR /app
 
-# Copy from file-structure stage
-COPY --from=file-structure /app/ ./
+# Copy directories and files
+COPY --from=build-release --chown=$TARGET_USER /app/out/rauthy_$TARGETARCH ./rauthy
+COPY --from=build-release --chown=$TARGET_USER /app/out/empty/ ./data/
+COPY --from=build-release --chown=$TARGET_USER /app/out/static/v1/ ./static/v1/
+COPY --from=build-release --chown=$TARGET_USER /app/out/templates/html/ ./templates/html/
+
+# Copy frontend assets
+COPY --from=frontend-builder --chown=$TARGET_USER /app/static/v1/ ./static/v1/
+COPY --from=frontend-builder --chown=$TARGET_USER /app/templates/html/ ./templates/html/
 
 # Copy TLS certificates and config
 COPY --chown=$TARGET_USER ./tls/ca-chain.pem ./tls/ca-chain.pem
@@ -104,11 +101,8 @@ COPY --chown=$TARGET_USER ./tls/cert-chain.pem ./tls/cert-chain.pem
 COPY --chown=$TARGET_USER ./tls/key.pem ./tls/key.pem
 COPY --chown=$TARGET_USER ./rauthy-local_test.cfg ./rauthy-local_test.cfg
 
-# Create empty data directory
-COPY --chown=$TARGET_USER --from=scratch /. data/
-
 # Label with metadata
-LABEL org.opencontainers.image.created="2025-04-03 04:20:20" \
+LABEL org.opencontainers.image.created="2025-04-03 05:00:46" \
       org.opencontainers.image.authors="type-checker" \
       org.opencontainers.image.source="https://github.com/awesomecollection/rauthy"
 

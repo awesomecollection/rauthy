@@ -26,6 +26,7 @@ jobs:
           POSTGRES_USER: rauthy
           POSTGRES_PASSWORD: 123SuperSafe
           POSTGRES_DB: rauthy
+          POSTGRES_HOST_AUTH_METHOD: trust
         ports:
           - 5432:5432
         options: >-
@@ -102,7 +103,7 @@ jobs:
       - name: Run database migrations
         run: cargo sqlx migrate run --source migrations/postgres
         env:
-          DATABASE_URL: postgresql://rauthy:123SuperSafe@localhost:5432/rauthy
+          DATABASE_URL: postgresql://rauthy:123SuperSafe@localhost:5432/rauthy?sslmode=disable
 
       # - name: Run tests
       #   run: cargo test --workspace
@@ -123,7 +124,7 @@ jobs:
           build-args: |
             BUILDPLATFORM=${{ runner.os }}
             TARGET_USER=10001:10001
-            DATABASE_URL=postgresql://rauthy:123SuperSafe@localhost:5432/rauthy
+            DATABASE_URL=postgresql://rauthy:123SuperSafe@localhost:5432/rauthy?sslmode=disable
 
   verify:
     needs: build-and-push
