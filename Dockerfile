@@ -54,13 +54,12 @@ RUN case ${TARGETARCH} in \
         *) echo "Unsupported architecture: ${TARGETARCH}" && exit 1 ;; \
     esac
 
-# Install sqlx-cli for migrations
-RUN cargo install sqlx-cli --no-default-features --features rustls,postgres
-
-# Build the backend
+# Build with sqlx offline mode
+ENV SQLX_OFFLINE=true
 RUN cargo build --release --target $(cat /tmp/target_triple) && \
     mkdir -p out/empty out/static/v1 out/templates/html && \
-    cp target/$(cat /tmp/target_triple)/release/rauthy out/rauthy_${TARGETARCH}
+    cp target/$(cat /tmp/target_triple)/release/rauthy out/rauthy_${TARGETARCH} && \
+    cp -r migrations out/migrations
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Stage 4: Final Runtime Image
