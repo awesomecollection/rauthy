@@ -3,23 +3,22 @@
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Define the base builder image with Rust and necessary tools
 ARG RUST_VERSION=1.85
-ARG NODE_VERSION=22
 FROM rust:${RUST_VERSION}-bookworm AS builder
 
 # Set frontend to noninteractive
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install build dependencies (compilers, clang) AND Node.js/npm AND OpenSSL
+# Install Node.js using the recommended installation method
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     clang \
     gcc-aarch64-linux-gnu \
     g++-aarch64-linux-gnu \
     curl \
+    ca-certificates \
     gnupg \
     && mkdir -p /etc/apt/keyrings \
-    && curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg \
-    && echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_${NODE_VERSION}.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list \
+    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get update \
     && apt-get install -y nodejs \
     libssl-dev \
@@ -70,9 +69,9 @@ COPY frontend/package.json frontend/package-lock.json* ./frontend/
 # Copy the rest of the frontend source code
 COPY frontend/ ./frontend/
 # Install frontend dependencies
-RUN npm install --prefix frontend
+RUN cd frontend && npm install
 # Build the frontend static assets
-RUN npm run build --prefix frontend
+RUN cd frontend && npm run build
 
 # --- Final Backend Build ---
 # Copy the rest of the backend application source code
@@ -94,14 +93,16 @@ FROM alpine:latest AS final
 ARG TARGETPLATFORM
 ARG TARGETARCH
 
+# Create necessary directories first
+RUN mkdir -p /app/data /app/tls /app/static/v1 /app/templates/html
+
 # Define the non-root user and group for the final image
 ARG TARGET_USER="10001:10001"
+RUN chown -R $TARGET_USER /app
+
 USER $TARGET_USER
 
 WORKDIR /app
-
-# Create necessary directories
-RUN mkdir -p /app/data /app/tls /app/static/v1 /app/templates/html
 
 # Copy the compiled binary from the 'build-release' stage
 COPY --from=build-release --chown=$TARGET_USER /app/out/rauthy_${TARGETARCH} ./rauthy
