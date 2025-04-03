@@ -45,6 +45,13 @@ ARG TARGETARCH
 ARG DATABASE_URL
 ENV DATABASE_URL=${DATABASE_URL}
 
+# Map TARGETARCH to Rust target triple
+RUN case ${TARGETARCH} in \
+        "amd64") echo "x86_64-unknown-linux-gnu" > /tmp/target_triple ;; \
+        "arm64") echo "aarch64-unknown-linux-gnu" > /tmp/target_triple ;; \
+        *) echo "Unsupported architecture: ${TARGETARCH}" && exit 1 ;; \
+    esac
+
 # --- Frontend UI Build ---
 # Copy frontend package definitions and build frontend first
 COPY frontend/package.json frontend/package-lock.json* ./frontend/
@@ -59,16 +66,16 @@ COPY Cargo.toml Cargo.lock ./
 RUN mkdir -p src && \
     echo "fn main() {}" > src/main.rs && \
     # Build dependencies
-    cargo build --release --target ${TARGETARCH}-unknown-linux-gnu && \
+    cargo build --release --target $(cat /tmp/target_triple) && \
     rm src/main.rs
 
 # Copy the rest of the source code
 COPY . .
 
 # Build the final binary
-RUN cargo build --release --target ${TARGETARCH}-unknown-linux-gnu && \
+RUN cargo build --release --target $(cat /tmp/target_triple) && \
     mkdir -p out && \
-    cp target/${TARGETARCH}-unknown-linux-gnu/release/rauthy out/rauthy_${TARGETARCH} && \
+    cp target/$(cat /tmp/target_triple)/release/rauthy out/rauthy_${TARGETARCH} && \
     mkdir -p out/empty
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -80,7 +87,7 @@ ARG TARGETPLATFORM
 ARG TARGETARCH
 
 # Install necessary runtime dependencies
-RUN apk add --no-cache ca-certificates
+RUN apk add --no-cache ca-certificates libgcc
 
 # Create necessary directories and set permissions
 RUN mkdir -p /app/data /app/tls /app/static/v1 /app/templates/html && \
